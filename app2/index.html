@@ -30,6 +30,8 @@
 
   </div>
 
+  <div id="modal"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
     integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
     crossorigin="anonymous"></script>
@@ -93,19 +95,38 @@ function home(){
       
       $("#nav").prepend(`<input type='text' name='query' id='query' placeholder='輸入學生姓名'>
                          <button onclick='query()'>查詢</button>`);
+      $("#nav").prepend(`<button class='btn btn-success' onclick='create()'>新增學生</button>`);
 
     })
   }
 
   //載入班級學員列表
   function loadStudents(classnum){
-    $("#students").html("");
+
     $.getJSON("api/load_student.php",{'classroom':classnum},(stulist)=>{
-        console.log(stulist)
+        //console.log(stulist)
         //stulist.forEach(function(stu,idx){})
         //stulist.forEach((stu,idx)=>{})
-        let tr="";
-        stulist.forEach((stu,idx)=>{
+        showData(stulist)
+        $("#classlist").hide();
+        showNav();
+        
+    })
+  }
+
+  //table顯示學生專用函式
+  function showData(array){
+    $("#students").html("");
+    
+    let data;
+    if(typeof array=='object'){
+      data=array
+    }else{
+      data=JSON.parse(array)  
+    }
+    
+    let tr="";
+        data.forEach((stu,idx)=>{
           tr=`
               <tr>
                 <td>${stu.uni_id}</td>
@@ -113,34 +134,80 @@ function home(){
                 <td>${stu.name}</td>
                 <td>${stu.birthday}</td>
                 <td>${stu.national_id}</td>
+                <td>
+                  <button class='btn btn-primary' onclick='showStu(${stu.id})'>編輯</button>
+                  <button class='btn btn-danger' onclick='del(${stu.id})'>刪除</button>
+
+                </td>
               </tr>
           `;
           $("#students").append(tr);
         })
 
-        $("#classlist").hide();
-        showNav();
-        
-    })
   }
+
+
   //新增資料的函式
   function create() {
+    $("#modal").load("api/show_blank_form.php",()=>{
+      $("#blankForm").modal("show")
+    })
 
   }
+
+  function add(){
+    let stu={
+        name:$("#name").val(),
+        classroom:$("#classroom").val(),
+        birthday:$("#birthday").val(),
+        seat_num:$("#num").val()
+    }
+
+    $.post("api/insert.php",stu,(res)=>{
+      console.log(res)
+      $("#blankForm").modal("hide")
+      loadStudents($("#classroom").val())
+    })
+  }
+
 
   //查詢資料的函式
   function query() {
-
+    //console.log($("#query").val())
+    let q=$("#query").val();
+    $.get("api/query.php",{q},(items)=>{
+      showData(items)
+    })
   }
 
   //編輯資料的函式
-  function update() {
+  function showStu(id) {
+    $.get("api/show_student.php",{id},(modal)=>{
+        $("#modal").html(modal)
+        $("#editForm").modal("show")
+    })
+  }
+  function update(id) {
+    let stu={
+        id:id,
+        name:$("#name").val(),
+        classroom:$("#classroom").val(),
+        birthday:$("#birthday").val(),
+        seat_num:$("#num").val()
+    }
 
+    $.post("api/update.php",stu,(res)=>{
+      console.log(res)
+      $("#editForm").modal("hide")
+      loadStudents($("#classroom").val())
+    })
   }
 
   //刪除資料的函式
-  function del() {
-
+  function del(id) {
+    $.post("api/delete.php",{id},(classnum)=>{
+      loadStudents(classnum)
+    })
   }
 
 </script>
